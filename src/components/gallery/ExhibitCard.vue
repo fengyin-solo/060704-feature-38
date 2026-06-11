@@ -22,6 +22,21 @@ const stateMachine = new StateMachine()
 const stateColor = computed(() => STATE_COLORS[props.exhibit.diary.state])
 const stateName = computed(() => STATE_NAMES[props.exhibit.diary.state])
 
+const summary = computed(() => {
+  const text = props.exhibit.diary.content?.text || ''
+  if (text.length <= 80) return text
+  return text.slice(0, 80) + '...'
+})
+
+const formattedDate = computed(() => {
+  const date = new Date(props.exhibit.diary.createdAt)
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
+})
+
 const diaryType = computed(() => {
   return pluginLoader.getDiaryType(props.exhibit.diary.type)
 })
@@ -121,13 +136,57 @@ function visitAuthor(e: Event) {
       </div>
 
       <div 
-        class="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-vt323 flex items-center gap-1 cursor-pointer hover:bg-black/80 transition-colors"
+        class="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-vt323 flex items-center gap-1 cursor-pointer hover:bg-black/80 transition-colors z-10"
         @click="visitAuthor"
       >
         <span>👤</span>
         <span class="text-diary-fresh">{{ exhibit.authorName }}</span>
         <span class="text-gray-400 ml-1">→</span>
       </div>
+
+      <transition name="fade">
+        <div 
+          v-if="isHovered && exhibit.diary.state !== 'dead'"
+          class="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col p-4 z-20"
+        >
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">👤</span>
+              <span 
+                class="font-vt323 text-diary-fresh cursor-pointer hover:underline"
+                @click="visitAuthor"
+              >
+                {{ exhibit.authorName }}
+              </span>
+            </div>
+            <span 
+              class="state-indicator text-xs"
+              :style="{ color: stateColor, borderColor: stateColor }"
+            >
+              {{ stateName }}
+            </span>
+          </div>
+
+          <div class="text-xs text-gray-500 font-vt323 mb-2">
+            📅 {{ formattedDate }}
+          </div>
+
+          <div class="flex-1 overflow-hidden">
+            <p class="text-sm text-gray-300 leading-relaxed line-clamp-4">
+              {{ summary }}
+            </p>
+          </div>
+
+          <div class="mt-3 pt-3 border-t border-gray-700 flex items-center justify-between text-xs text-gray-500 font-vt323">
+            <span>📝 {{ diaryType?.name || '未知类型' }}</span>
+            <span>🎨 {{ exhibit.diary.pipeline.filter(p => p.enabled).length }} 种效果</span>
+          </div>
+
+          <div class="mt-3 text-center text-diary-fresh font-vt323 text-xs animate-pulse">
+            点击查看详情 →
+          </div>
+        </div>
+      </transition>
     </div>
     
     <div class="p-3">
@@ -175,5 +234,22 @@ function visitAuthor(e: Event) {
 .exhibit-card:hover {
   @apply transform -translate-y-1 shadow-lg;
   box-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>
